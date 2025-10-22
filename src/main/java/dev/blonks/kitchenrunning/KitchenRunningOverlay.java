@@ -19,17 +19,6 @@ import java.util.Set;
 public class KitchenRunningOverlay extends Overlay {
     private final Client client;
     private final KitchenRunningConfig config;
-    private static final Set<WorldPoint> GOOD_TILES = ImmutableSet.of(
-            new WorldPoint(3207, 3213, 0),
-            new WorldPoint(3209, 3213, 0),
-            new WorldPoint(3211, 3213, 0),
-            new WorldPoint(3207, 3215, 0),
-            new WorldPoint(3209, 3215, 0),
-            new WorldPoint(3211, 3215, 0)
-    );
-    private static final Set<WorldPoint> BAD_TILES = ImmutableSet.of(
-
-    );
 
 
     @Inject
@@ -47,15 +36,20 @@ public class KitchenRunningOverlay extends Overlay {
             return null;
         }
 
-        boolean isOnGoodTile = PlayerPositionUtils.isOnGoodTile(client);
+        if (PlayerPositionUtils.isPvpOrNonLeagues(client)) {
+            return null;
+        }
 
+        // renders good tile starting point markers
+        boolean isOnGoodTile = PlayerPositionUtils.isOnGoodTile(client.getLocalPlayer());
         if (!isOnGoodTile) {
-            for (WorldPoint point : GOOD_TILES) {
+            for (WorldPoint point : PlayerPositionUtils.GOOD_TILES) {
                 renderPlayerTile(graphics2D, LocalPoint.fromWorld(client, point), config.startingTilesBorder(), config.startingTilesFill());
             }
         }
 
-        if (PlayerPositionUtils.isFollowingConductor(config, client) && isOnGoodTile)
+        // renders nothing if the player is in cycle
+        if (PlayerPositionUtils.isFollowingConductor(config, client.getLocalPlayer()) && isOnGoodTile)
             return null;
 
         final LocalPoint playerLocalPoint = PlayerPositionUtils.getLocalPoint(client, client.getLocalPlayer());

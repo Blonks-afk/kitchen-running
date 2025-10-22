@@ -4,9 +4,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.inject.Provides;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.*;
-import net.runelite.api.events.ChatMessage;
-import net.runelite.api.events.GameTick;
-import net.runelite.api.events.InteractingChanged;
+import net.runelite.api.events.*;
 import net.runelite.api.gameval.NpcID;
 import net.runelite.client.Notifier;
 import net.runelite.client.callback.Hooks;
@@ -118,7 +116,7 @@ public class KitchenRunningPlugin extends Plugin
         if (!local.equals(e.getSource()))
             return;
 
-        if (!PlayerPositionUtils.isFollowingConductor(config, client)) {
+        if (!PlayerPositionUtils.isFollowingConductor(config, local)) {
             notifier.notify(config.stoppedFollowing(), "You are no longer following the conductor!");
         }
     }
@@ -165,10 +163,22 @@ public class KitchenRunningPlugin extends Plugin
         if (!inKitchen)
             return true;
 
+        if (PlayerPositionUtils.isPvpOrNonLeagues(client)) {
+            return true;
+        }
+
         // entity hider settings are disabled
-        if (config.hideOtherEntities().equals(KitchenRunningConfig.CycleState.NONE))
+        if (config.hideOtherEntities().equals(CycleState.NONE))
             return true;
 
+        if (renderable instanceof NPC) {
+            NPC npc = (NPC) renderable;
+            if (RANDOM_EVENT_NPC_IDS.contains(npc.getId()))
+                return false;
+
+            if (THRALL_IDS.contains(npc.getId()))
+                return false;
+        }
 
         if (renderable instanceof Player) {
             Player player = (Player) renderable;
@@ -182,34 +192,33 @@ public class KitchenRunningPlugin extends Plugin
                     && player.getName().equalsIgnoreCase(config.conductorUsername()))
                 return true;
 
-            boolean inCycle = PlayerPositionUtils.isOnGoodTile(client) && PlayerPositionUtils.isFollowingConductor(config, client);
-
-            switch (config.hideOtherEntities()) {
-                case BOTH:
-                    return false;
-                case IN_CYCLE:
-                    // hide entities when in cycle
-                    return !inCycle;
-                case OUT_OF_CYCLE:
-                    return inCycle;
-                case NONE:
-                    return true;
-
-            }
-
+            return shouldRender(config, player);
         }
-        else if (renderable instanceof NPC) {
-            NPC npc = (NPC) renderable;
 
-            if (npc.getComposition().isFollower() && npc != client.getFollower())
-                return false;
+        return true;
+    }
 
-            if (RANDOM_EVENT_NPC_IDS.contains(npc.getId()))
-                return false;
+    private boolean shouldRender(KitchenRunningConfig config, Player other) {
+        boolean playerInCycle = PlayerPositionUtils.isInCycle(config, client.getLocalPlayer());
+        boolean otherInCycle = PlayerPositionUtils.isInCycle(config, other);
 
-            if (THRALL_IDS.contains(npc.getId()))
-                return false;
+        CycleState playerCycleConfig = config.hideOtherEntities();
 
+        // guard statement that returns when the current player state is not in line with when entities should hide
+        if (playerCycleConfig.equals(CycleState.IN_CYCLE) && playerInCycle) {
+            return false;
+        }
+
+        if (playerCycleConfig.equals(CycleState.OUT_OF_CYCLE) && !playerInCycle) {
+            return false;
+        }
+
+        if (playerCycleConfig.equals(CycleState.BOTH)) {
+            return false;
+        }
+
+        if (playerCycleConfig.equals(CycleState.NONE)) {
+            return true;
         }
 
         return true;
