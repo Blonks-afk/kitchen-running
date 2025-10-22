@@ -9,13 +9,6 @@ public interface KitchenRunningConfig extends Config
 {
     String KITCHEN_GROUP = "kitchenrunning";
 
-    enum CycleState {
-        IN_CYCLE,
-        OUT_OF_CYCLE,
-        BOTH,
-        NONE
-    }
-
     @ConfigSection(
             name = "Instructions",
             description = "Look here for instructions",
@@ -194,7 +187,8 @@ public interface KitchenRunningConfig extends Config
             keyName = "hideOtherEntities",
             name = "Hide other entities",
             description = "Configure when other player entities should be hidden so you can find the conductor",
-            section = entityHiderSection
+            section = entityHiderSection,
+            position = 0
     )
     default CycleState hideOtherEntities() {
         return CycleState.OUT_OF_CYCLE;
