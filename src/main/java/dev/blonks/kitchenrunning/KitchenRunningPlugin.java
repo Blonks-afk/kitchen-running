@@ -80,6 +80,7 @@ public class KitchenRunningPlugin extends Plugin
     private KitchenRunningOverlay overlay;
 
     private boolean inKitchen = false;
+	private boolean wasFollowingConductor = false;
 
     @Provides
     KitchenRunningConfig provideConfig(ConfigManager configManager)
@@ -116,9 +117,16 @@ public class KitchenRunningPlugin extends Plugin
         if (!local.equals(e.getSource()))
             return;
 
-        if (!PlayerPositionUtils.isFollowingConductor(config, local)) {
-            notifier.notify(config.stoppedFollowing(), "You are no longer following the conductor!");
-        }
+
+		boolean isFollowingConductor = PlayerPositionUtils.isFollowingConductor(config, local);
+		if (wasFollowingConductor && !isFollowingConductor)
+		{
+			wasFollowingConductor = false;
+			notifier.notify(config.stoppedFollowing(), "You are no longer following the conductor!");
+		} else if (isFollowingConductor)
+		{
+			wasFollowingConductor = true;
+		}
     }
 
     @Subscribe
