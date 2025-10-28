@@ -3,7 +3,6 @@ package dev.blonks.kitchenrunning;
 import com.google.inject.Provides;
 import dev.blonks.kitchenrunning.config.KitchenRunningConfig;
 import dev.blonks.kitchenrunning.overlay.KitchenRunningOverlay;
-import dev.blonks.kitchenrunning.utils.CycleState;
 import dev.blonks.kitchenrunning.utils.HideMode;
 import dev.blonks.kitchenrunning.utils.KitchenRunningConstants;
 import dev.blonks.kitchenrunning.utils.PlayerPositionUtils;
@@ -51,7 +50,19 @@ public class KitchenRunningPlugin extends Plugin
 
     private boolean inKitchen = false;
 	private boolean wasFollowingConductor = false;
+	/**
+	 * Main state tracking variable for when features should be enabled.<br/>
+	 * When true, this means that the player is on leagues/grid and in the kitchen.<br/>
+	 * When false, this would mean that NO features of this plugin should execute.
+	 */
 	private boolean enabled = false;
+	/**
+	 * A more granular flag than {@link #enabled}. This will always be false when {@link #enabled} is false,
+	 * but there may be cases where some features should be disabled to not disrupt players' experience,
+	 * such as disabling entity hiding if they are ready to start running, but no conductor can be found.
+	 */
+	private boolean conductorNearby = false;
+	private boolean loggedIn = false;
 
     @Provides
     KitchenRunningConfig provideConfig(ConfigManager configManager)
@@ -62,21 +73,21 @@ public class KitchenRunningPlugin extends Plugin
     @Override
     protected void startUp() throws Exception
     {
-        log.info("startup");
-        checkLocation();
+		updateState();
         overlayManager.add(overlay);
         hooks.registerRenderableDrawListener(renderableDrawListener);
     }
 
     @Override
     protected void shutDown() throws Exception {
+		updateState();
         overlayManager.remove(overlay);
         hooks.unregisterRenderableDrawListener(renderableDrawListener);
     }
 
     @Subscribe
     public void onGameTick(GameTick e) {
-        checkLocation();
+		updateState();
     }
 
     @Subscribe
@@ -119,23 +130,52 @@ public class KitchenRunningPlugin extends Plugin
         }
     }
 
-    private void checkLocation() {
-        boolean newIsKitchen = PlayerPositionUtils.isInKitchen(client);
+	/**
+	 * Sets {@link #inKitchen} boolean based on player location<br/>
+	 * Sets {@link #wasFollowingConductor}  and {@link #enabled} to false when not in kitchen<br/>
+	 * Sets {@link #conductorNearby} if player is in kitchen based on whether the conductor is in the kitchen<br/>
+	 */
+	private void updateState() {
+		// Completely wipe state variables if the user is not logged in
+		if (client.getGameState() != GameState.LOGGED_IN) {
+			resetStateVariables();
+			return;
+		}
+		loggedIn = true;
 
-        if (newIsKitchen == inKitchen)
-            return;
+		// Completely wipe state variables if the user is on a non-leagues/gridmaster world
+		if (PlayerPositionUtils.isPvpOrNonLeagues(client)) {
+			resetStateVariables();
+			return;
+		}
 
-        inKitchen = newIsKitchen;
-    }
+		/* Completely wipe state variables if the user IS logged in and on a leagues/gridmaster world, but not
+		 * currently looking to train agility in the kitchen
+		 */
+		if (!PlayerPositionUtils.isInKitchen(client)) {
+			resetStateVariables();
+			return;
+		}
+		inKitchen = true;
+
+		enabled = true;
+		conductorNearby = PlayerPositionUtils.isConductorNearby(client, config);
+	}
+
+	private void resetStateVariables() {
+		inKitchen = false;
+		conductorNearby = false;
+		wasFollowingConductor = false;
+		enabled = false;
+	}
 
     private boolean shouldDraw(Renderable renderable, boolean b) {
-        // always draw others outside the kitchen
-        if (!inKitchen)
-            return true;
+		if (!enabled)
+			return true;
 
-        if (PlayerPositionUtils.isPvpOrNonLeagues(client)) {
-            return true;
-        }
+		// Always render when the specified conductor is not around
+        if (!conductorNearby)
+			return true;
 
         // entity hider settings are disabled
         if (config.hideOtherEntities().equals(HideMode.NEVER))
