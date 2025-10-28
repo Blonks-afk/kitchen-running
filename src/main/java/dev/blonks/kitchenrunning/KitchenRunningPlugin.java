@@ -85,6 +85,13 @@ public class KitchenRunningPlugin extends Plugin
         hooks.unregisterRenderableDrawListener(renderableDrawListener);
     }
 
+	@Subscribe
+	public void onGameStateChanged(GameStateChanged e) {
+		if (e.getGameState() == GameState.LOGIN_SCREEN) {
+			updateState();
+		}
+	}
+
     @Subscribe
     public void onGameTick(GameTick e) {
 		updateState();
