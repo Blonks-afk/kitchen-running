@@ -2,6 +2,7 @@ package dev.blonks.kitchenrunning.utils;
 
 import com.google.common.collect.ImmutableSet;
 import dev.blonks.kitchenrunning.config.KitchenRunningConfig;
+import java.util.Optional;
 import net.runelite.api.Actor;
 import net.runelite.api.Client;
 import net.runelite.api.Player;
@@ -40,13 +41,43 @@ public class PlayerPositionUtils {
 	}
 
     public static boolean isInKitchen(Client client) {
-        Player localPlayer = client.getLocalPlayer();
-        if (localPlayer != null) {
-            WorldPoint playerLocation = localPlayer.getWorldLocation();
-            return playerLocation.isInArea(LUMBRIDGE_KITCHEN);
-        }
-        return false;
+        return isInKitchen(client, client.getLocalPlayer());
     }
+
+	public static boolean isInKitchen(Client client, Player player) {
+		if (player == null)
+			return false;
+
+		WorldPoint playerLocation = player.getWorldLocation();
+		return playerLocation.isInArea(LUMBRIDGE_KITCHEN);
+	}
+
+	public static boolean isConductorNearby(Client client, KitchenRunningConfig config) {
+		var playerOptional = getConductorPlayer(client, config);
+
+		if (playerOptional.isEmpty())
+		{
+			return false;
+		}
+
+		return isInKitchen(client, playerOptional.get());
+	}
+
+	/**
+	 * Tries to grab the specified conductor from the nearby players
+	 * @return An {@link Optional<? extends Player> optional} that may contain the conductor {@Player}
+	 */
+	public static Optional<? extends Player> getConductorPlayer(Client client, KitchenRunningConfig config) {
+		String conductorName = config.conductorUsername();
+		if (conductorName == null)
+			return Optional.empty();
+
+		Optional<? extends Player> playerOptional = client.getTopLevelWorldView().players().stream()
+			.filter(player -> conductorName.strip().equalsIgnoreCase(player.getName()))
+			.findFirst();
+
+		return playerOptional;
+	}
 
     public static CycleState getPlayerCycleState(KitchenRunningConfig config, Player player) {
         boolean isOnGoodTile = isOnGoodTile(player);
