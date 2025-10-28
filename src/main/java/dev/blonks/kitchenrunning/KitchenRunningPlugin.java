@@ -2,17 +2,22 @@ package dev.blonks.kitchenrunning;
 
 import com.google.inject.Provides;
 import dev.blonks.kitchenrunning.config.KitchenRunningConfig;
+import dev.blonks.kitchenrunning.overlay.ForgottenGreavesOverlay;
 import dev.blonks.kitchenrunning.overlay.KitchenRunningOverlay;
 import dev.blonks.kitchenrunning.utils.HideMode;
+import dev.blonks.kitchenrunning.utils.InventoryUtils;
 import dev.blonks.kitchenrunning.utils.KitchenRunningConstants;
 import dev.blonks.kitchenrunning.utils.PlayerPositionUtils;
+import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.*;
 import net.runelite.api.events.*;
+import net.runelite.api.gameval.InventoryID;
 import net.runelite.client.Notifier;
 import net.runelite.client.callback.Hooks;
 import net.runelite.client.config.ConfigManager;
 import net.runelite.client.eventbus.Subscribe;
+import net.runelite.client.game.ItemManager;
 import net.runelite.client.plugins.Plugin;
 import net.runelite.client.plugins.PluginDescriptor;
 import net.runelite.client.ui.overlay.OverlayManager;
@@ -36,6 +41,12 @@ public class KitchenRunningPlugin extends Plugin
     @Inject
     private OverlayManager overlayManager;
 
+	@Inject
+	private KitchenRunningOverlay tileOverlay;
+
+	@Inject
+	private ForgottenGreavesOverlay greavesWarningOverlay;
+
     @Inject
     private Notifier notifier;
 
@@ -45,24 +56,30 @@ public class KitchenRunningPlugin extends Plugin
 
     private IndexedObjectSet<? extends Player> localPlayers;
 
-    @Inject
-    private KitchenRunningOverlay overlay;
-
-    private boolean inKitchen = false;
+	@Getter
+	private boolean inKitchen = false;
+	@Getter
 	private boolean wasFollowingConductor = false;
 	/**
 	 * Main state tracking variable for when features should be enabled.<br/>
 	 * When true, this means that the player is on leagues/grid and in the kitchen.<br/>
 	 * When false, this would mean that NO features of this plugin should execute.
 	 */
+	@Getter
 	private boolean enabled = false;
 	/**
 	 * A more granular flag than {@link #enabled}. This will always be false when {@link #enabled} is false,
 	 * but there may be cases where some features should be disabled to not disrupt players' experience,
 	 * such as disabling entity hiding if they are ready to start running, but no conductor can be found.
 	 */
+	@Getter
 	private boolean conductorNearby = false;
+	@Getter
 	private boolean loggedIn = false;
+	@Getter
+	private boolean wearingGreaves = true;
+	@Getter
+	private boolean forgotGreaves = false;
 
     @Provides
     KitchenRunningConfig provideConfig(ConfigManager configManager)
@@ -74,14 +91,16 @@ public class KitchenRunningPlugin extends Plugin
     protected void startUp() throws Exception
     {
 		updateState();
-        overlayManager.add(overlay);
+        overlayManager.add(tileOverlay);
+		overlayManager.add(greavesWarningOverlay);
         hooks.registerRenderableDrawListener(renderableDrawListener);
     }
 
     @Override
     protected void shutDown() throws Exception {
 		updateState();
-        overlayManager.remove(overlay);
+        overlayManager.remove(tileOverlay);
+		overlayManager.remove(greavesWarningOverlay);
         hooks.unregisterRenderableDrawListener(renderableDrawListener);
     }
 
@@ -164,7 +183,8 @@ public class KitchenRunningPlugin extends Plugin
 			return;
 		}
 		inKitchen = true;
-
+		wearingGreaves = InventoryUtils.itemContainerContainsGreaves(client, InventoryID.WORN, true);
+		forgotGreaves = InventoryUtils.itemContainerContainsGreaves(client, InventoryID.INV, false);
 		enabled = true;
 		conductorNearby = PlayerPositionUtils.isConductorNearby(client, config);
 	}
@@ -174,6 +194,8 @@ public class KitchenRunningPlugin extends Plugin
 		conductorNearby = false;
 		wasFollowingConductor = false;
 		enabled = false;
+		wearingGreaves = true;
+		forgotGreaves = false;
 	}
 
     private boolean shouldDraw(Renderable renderable, boolean b) {
