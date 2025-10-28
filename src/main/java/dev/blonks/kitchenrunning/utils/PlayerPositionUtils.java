@@ -1,6 +1,7 @@
-package dev.blonks.kitchenrunning;
+package dev.blonks.kitchenrunning.utils;
 
 import com.google.common.collect.ImmutableSet;
+import dev.blonks.kitchenrunning.config.KitchenRunningConfig;
 import net.runelite.api.Actor;
 import net.runelite.api.Client;
 import net.runelite.api.Player;
@@ -11,6 +12,10 @@ import net.runelite.api.coords.WorldPoint;
 
 import java.util.Set;
 
+/**
+ * A class that contains static properties and methods that aid in working with the player location
+ * data, as well as general map location
+ */
 public class PlayerPositionUtils {
     public static final WorldArea LUMBRIDGE_KITCHEN = new WorldArea(3205, 3212, 8, 6, 0);
     public static final Set<WorldPoint> GOOD_TILES = ImmutableSet.of(
@@ -30,6 +35,10 @@ public class PlayerPositionUtils {
             new WorldPoint(3207, 3214, 0)
     );
 
+	public static boolean shouldProcess(Client client) {
+		return isInKitchen(client) && !isPvpOrNonLeagues(client);
+	}
+
     public static boolean isInKitchen(Client client) {
         Player localPlayer = client.getLocalPlayer();
         if (localPlayer != null) {
@@ -44,9 +53,9 @@ public class PlayerPositionUtils {
         boolean isFollowingConductor = isFollowingConductor(config, player);
 
         if (isOnGoodTile && isFollowingConductor)
-            return CycleState.IN_CYCLE;
+            return CycleState.FOLLOWING_CONDUCTOR;
 
-        return CycleState.OUT_OF_CYCLE;
+        return CycleState.NOT_FOLLOWING_CONDUCTOR;
     }
 
     public static boolean isInCycle(KitchenRunningConfig config, Player player) {
