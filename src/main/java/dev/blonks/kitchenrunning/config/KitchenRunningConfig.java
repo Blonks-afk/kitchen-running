@@ -1,5 +1,7 @@
-package dev.blonks.kitchenrunning;
+package dev.blonks.kitchenrunning.config;
 
+import dev.blonks.kitchenrunning.utils.CycleState;
+import dev.blonks.kitchenrunning.utils.HideMode;
 import net.runelite.client.config.*;
 
 import java.awt.*;
@@ -184,14 +186,14 @@ public interface KitchenRunningConfig extends Config
     String entityHiderSection = "entityHiderSection";
 
     @ConfigItem(
-            keyName = "hideOtherEntities",
-            name = "Hide other entities",
+            keyName = "hidingMode",
+            name = "Hiding mode",
             description = "Configure when other player entities should be hidden so you can find the conductor",
             section = entityHiderSection,
             position = 0
     )
-    default CycleState hideOtherEntities() {
-        return CycleState.OUT_OF_CYCLE;
+    default HideMode hideOtherEntities() {
+        return HideMode.NOT_FOLLOWING_CONDUCTOR;
     }
 
 
