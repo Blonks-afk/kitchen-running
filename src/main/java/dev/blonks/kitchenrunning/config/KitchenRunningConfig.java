@@ -49,6 +49,16 @@ public interface KitchenRunningConfig extends Config
         return "";
     }
 
+	@ConfigItem(
+		keyName = "sidebarPriority",
+		name = "Sidebar Priority",
+		description = "Customize the priority of the panel in the sidebar",
+		section = generalConfig
+	)
+	default int sidebarPriority() {
+		return 25;
+	}
+
 
     @ConfigSection(
             name = "Conductor Tile",

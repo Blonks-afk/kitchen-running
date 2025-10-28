@@ -4,6 +4,7 @@ import com.google.inject.Provides;
 import dev.blonks.kitchenrunning.config.KitchenRunningConfig;
 import dev.blonks.kitchenrunning.overlay.ForgottenGreavesOverlay;
 import dev.blonks.kitchenrunning.overlay.KitchenRunningOverlay;
+import dev.blonks.kitchenrunning.ui.MainPanel;
 import dev.blonks.kitchenrunning.utils.HideMode;
 import dev.blonks.kitchenrunning.utils.InventoryUtils;
 import dev.blonks.kitchenrunning.utils.KitchenRunningConstants;
@@ -17,12 +18,16 @@ import net.runelite.client.Notifier;
 import net.runelite.client.callback.Hooks;
 import net.runelite.client.config.ConfigManager;
 import net.runelite.client.eventbus.Subscribe;
+import net.runelite.client.events.ConfigChanged;
 import net.runelite.client.game.ItemManager;
 import net.runelite.client.plugins.Plugin;
 import net.runelite.client.plugins.PluginDescriptor;
+import net.runelite.client.ui.ClientToolbar;
+import net.runelite.client.ui.NavigationButton;
 import net.runelite.client.ui.overlay.OverlayManager;
 
 import javax.inject.Inject;
+import net.runelite.client.util.ImageUtil;
 
 @Slf4j
 @PluginDescriptor(
@@ -34,6 +39,11 @@ public class KitchenRunningPlugin extends Plugin
 {
     @Inject
 	private Client client;
+
+	@Inject
+	private ClientToolbar clientToolbar;
+	private NavigationButton navButton;
+	private MainPanel mainPanel;
 
 	@Inject
 	private KitchenRunningConfig config;
@@ -94,6 +104,9 @@ public class KitchenRunningPlugin extends Plugin
         overlayManager.add(tileOverlay);
 		overlayManager.add(greavesWarningOverlay);
         hooks.registerRenderableDrawListener(renderableDrawListener);
+		mainPanel = new MainPanel(this);
+		navButton = createNavButton(config.sidebarPriority());
+		clientToolbar.addNavigation(navButton);
     }
 
     @Override
@@ -102,7 +115,21 @@ public class KitchenRunningPlugin extends Plugin
         overlayManager.remove(tileOverlay);
 		overlayManager.remove(greavesWarningOverlay);
         hooks.unregisterRenderableDrawListener(renderableDrawListener);
+		clientToolbar.removeNavigation(navButton);
     }
+
+	@Subscribe
+	public void onConfigChanged(ConfigChanged e) {
+		if (e.getKey().equalsIgnoreCase("sidebarPriority")) {
+			if (e.getNewValue() == null)
+				return;
+
+			NavigationButton newNavButton = createNavButton(Integer.valueOf(e.getNewValue()));
+			clientToolbar.removeNavigation(navButton);
+			navButton = newNavButton;
+			clientToolbar.addNavigation(navButton);
+		}
+	}
 
 	@Subscribe
 	public void onGameStateChanged(GameStateChanged e) {
@@ -265,4 +292,13 @@ public class KitchenRunningPlugin extends Plugin
 
         return true;
     }
+
+	private NavigationButton createNavButton(int priority) {
+		return NavigationButton.builder()
+			.tooltip("Kitchen Running")
+			.icon(ImageUtil.loadImageResource(getClass(), "/greaves.png"))
+			.panel(mainPanel)
+			.priority(priority)
+			.build();
+	}
 }
