@@ -1,6 +1,7 @@
-package dev.blonks.kitchenrunning;
+package dev.blonks.kitchenrunning.overlay;
 
-import com.google.common.collect.ImmutableSet;
+import dev.blonks.kitchenrunning.config.KitchenRunningConfig;
+import dev.blonks.kitchenrunning.utils.PlayerPositionUtils;
 import net.runelite.api.Client;
 import net.runelite.api.Perspective;
 import net.runelite.api.Player;
@@ -14,7 +15,6 @@ import net.runelite.client.ui.overlay.OverlayUtil;
 import javax.inject.Inject;
 import java.awt.*;
 import java.util.Optional;
-import java.util.Set;
 
 public class KitchenRunningOverlay extends Overlay {
     private final Client client;
@@ -58,7 +58,7 @@ public class KitchenRunningOverlay extends Overlay {
 
 
         Optional<? extends Player> conductorPlayer = client.getTopLevelWorldView().players().stream()
-                .filter(player -> player.getName().equalsIgnoreCase(config.conductorUsername()))
+                .filter(player -> player.getName().equalsIgnoreCase(config.activeConductor()))
                 .findFirst();
 
         if (conductorPlayer.isEmpty())
