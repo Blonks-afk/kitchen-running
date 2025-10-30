@@ -58,7 +58,7 @@ public class KitchenRunningOverlay extends Overlay {
 
 
         Optional<? extends Player> conductorPlayer = client.getTopLevelWorldView().players().stream()
-                .filter(player -> player.getName().equalsIgnoreCase(config.conductorUsername()))
+                .filter(player -> player.getName().equalsIgnoreCase(config.activeConductor()))
                 .findFirst();
 
         if (conductorPlayer.isEmpty())
