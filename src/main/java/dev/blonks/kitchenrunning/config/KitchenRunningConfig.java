@@ -1,6 +1,5 @@
 package dev.blonks.kitchenrunning.config;
 
-import dev.blonks.kitchenrunning.utils.CycleState;
 import dev.blonks.kitchenrunning.utils.HideMode;
 import net.runelite.client.config.*;
 
@@ -39,25 +38,44 @@ public interface KitchenRunningConfig extends Config
     String generalConfig = "generalConfig";
 
     @ConfigItem(
-            keyName = "conductorUsername",
-            name = "Conductor username",
-            description = "The username of the player that is leading the kitchen loop",
+            keyName = "conductorUsernames",
+            name = "Conductor usernames",
+            description = "The username(s) of the player that is leading the kitchen loop (commas or new lines)",
             section = generalConfig
     )
-    default String conductorUsername()
+    default String conductorUsernames()
     {
         return "";
     }
 
-//	@ConfigItem(
-//		keyName = "sidebarPriority",
-//		name = "Sidebar Priority",
-//		description = "Customize the priority of the panel in the sidebar",
-//		section = generalConfig
-//	)
-//	default int sidebarPriority() {
-//		return 25;
-//	}
+
+	@ConfigItem(
+		keyName = "activeConductor",
+		name = "",
+		description = "",
+		hidden = true
+	)
+	default String activeConductor() {
+		return "";
+	}
+	@ConfigItem(
+		keyName = "activeConductor",
+		name = "",
+		description = "",
+		hidden = true
+	)
+	void activeConductor(String conductorUsername);
+
+	@ConfigItem(
+		keyName = "sidebarPriority",
+		name = "Sidebar Priority",
+		description = "Customize the priority of the panel in the sidebar",
+		hidden = true,
+		section = generalConfig
+	)
+	default int sidebarPriority() {
+		return 25;
+	}
 
 
     @ConfigSection(

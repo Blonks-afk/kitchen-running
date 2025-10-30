@@ -9,6 +9,7 @@ import dev.blonks.kitchenrunning.utils.HideMode;
 import dev.blonks.kitchenrunning.utils.InventoryUtils;
 import dev.blonks.kitchenrunning.utils.KitchenRunningConstants;
 import dev.blonks.kitchenrunning.utils.PlayerPositionUtils;
+import java.util.Optional;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.*;
@@ -19,7 +20,6 @@ import net.runelite.client.callback.Hooks;
 import net.runelite.client.config.ConfigManager;
 import net.runelite.client.eventbus.Subscribe;
 import net.runelite.client.events.ConfigChanged;
-import net.runelite.client.game.ItemManager;
 import net.runelite.client.plugins.Plugin;
 import net.runelite.client.plugins.PluginDescriptor;
 import net.runelite.client.ui.ClientToolbar;
@@ -67,6 +67,8 @@ public class KitchenRunningPlugin extends Plugin
     private IndexedObjectSet<? extends Player> localPlayers;
 
 	@Getter
+	private String activeConductor = "";
+	@Getter
 	private boolean inKitchen = false;
 	@Getter
 	private boolean wasFollowingConductor = false;
@@ -109,9 +111,11 @@ public class KitchenRunningPlugin extends Plugin
 		overlayManager.add(greavesWarningOverlay);
         hooks.registerRenderableDrawListener(renderableDrawListener);
 
-//		mainPanel = new MainPanel(this);
-//		navButton = createNavButton(config.sidebarPriority());
-//		clientToolbar.addNavigation(navButton);
+		if (KitchenRunningPlugin.sidebar) {
+			mainPanel = new MainPanel(this);
+			navButton = createNavButton(config.sidebarPriority());
+			clientToolbar.addNavigation(navButton);
+		}
     }
 
     @Override
@@ -120,7 +124,9 @@ public class KitchenRunningPlugin extends Plugin
         overlayManager.remove(tileOverlay);
 		overlayManager.remove(greavesWarningOverlay);
         hooks.unregisterRenderableDrawListener(renderableDrawListener);
-		clientToolbar.removeNavigation(navButton);
+		if (KitchenRunningPlugin.sidebar) {
+			clientToolbar.removeNavigation(navButton);
+		}
     }
 
 	@Subscribe
@@ -182,7 +188,7 @@ public class KitchenRunningPlugin extends Plugin
 
         String senderName = e.getName();
         senderName = senderName.substring(Math.max(senderName.indexOf('>')+1, 1));
-        if (senderName.equalsIgnoreCase(config.conductorUsername())) {
+        if (senderName.equalsIgnoreCase(config.activeConductor())) {
             if (e.getMessage().toLowerCase().startsWith("alert:"))
                 notifier.notify(config.conductorAlert(), "The conductor says: " + e.getMessage().toLowerCase().replace("alert:", ""));
         }
@@ -214,11 +220,28 @@ public class KitchenRunningPlugin extends Plugin
 			resetStateVariables();
 			return;
 		}
+
+		String tempConductorConfig = config.conductorUsernames();
+		if (tempConductorConfig == null) {
+			resetStateVariables();
+			return;
+		}
+
+		Optional<? extends Player> foundConductor = PlayerPositionUtils.getAnyConductorPlayer(client, config);
+		if (foundConductor.isPresent()) {
+			conductorNearby = true;
+			config.activeConductor(foundConductor.get().getName());
+			activeConductor = foundConductor.get().getName();
+		} else {
+			conductorNearby = false;
+			config.activeConductor("");
+			activeConductor = "";
+		}
+
 		inKitchen = true;
 		wearingGreaves = InventoryUtils.itemContainerContainsGreaves(client, InventoryID.WORN, true);
 		forgotGreaves = InventoryUtils.itemContainerContainsGreaves(client, InventoryID.INV, false);
 		enabled = true;
-		conductorNearby = PlayerPositionUtils.isConductorNearby(client, config);
 	}
 
 	private void resetStateVariables() {
@@ -228,6 +251,8 @@ public class KitchenRunningPlugin extends Plugin
 		enabled = false;
 		wearingGreaves = true;
 		forgotGreaves = false;
+		activeConductor = null;
+		config.activeConductor("");
 	}
 
     private boolean shouldDraw(Renderable renderable, boolean b) {
@@ -259,8 +284,8 @@ public class KitchenRunningPlugin extends Plugin
                 return true;
 
             // draw the conductor
-            if (config.conductorUsername() != null && player.getName() != null
-                    && player.getName().equalsIgnoreCase(config.conductorUsername()))
+            if (config.activeConductor() != null && player.getName() != null
+                    && player.getName().equalsIgnoreCase(config.activeConductor()))
                 return true;
 
             return shouldRenderOthers(config, player);

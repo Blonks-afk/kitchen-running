@@ -2,7 +2,11 @@ package dev.blonks.kitchenrunning.utils;
 
 import com.google.common.collect.ImmutableSet;
 import dev.blonks.kitchenrunning.config.KitchenRunningConfig;
+import java.util.Arrays;
+import java.util.Comparator;
+import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 import net.runelite.api.Actor;
 import net.runelite.api.Client;
 import net.runelite.api.Player;
@@ -68,7 +72,7 @@ public class PlayerPositionUtils {
 	 * @return An {@link Optional<? extends Player> optional} that may contain the conductor {@Player}
 	 */
 	public static Optional<? extends Player> getConductorPlayer(Client client, KitchenRunningConfig config) {
-		String conductorName = config.conductorUsername();
+		String conductorName = config.activeConductor();
 		if (conductorName == null)
 			return Optional.empty();
 
@@ -77,6 +81,26 @@ public class PlayerPositionUtils {
 			.findFirst();
 
 		return playerOptional;
+	}
+
+	public static Optional<? extends Player> getAnyConductorPlayer(Client client, KitchenRunningConfig config) {
+		if (config.conductorUsernames() == null || config.conductorUsernames().isBlank())
+			return Optional.empty();
+
+		/*
+		Always split on line separators if present, else split on commas
+		 */
+		String splitOn = config.conductorUsernames().contains(System.lineSeparator()) ? System.lineSeparator() : ",";
+		List<String> potentialConductors = Arrays.stream(config.conductorUsernames().split(splitOn))
+			.map(String::toLowerCase)
+			.map(str -> str.replace(",", "")) // make sure to remove any commas in case people mixed commas and newlines
+			.map(str -> str.replace(System.lineSeparator(), "")) // same here
+			.collect(Collectors.toList());
+
+
+		return client.getTopLevelWorldView().players().stream()
+			.filter(player -> potentialConductors.contains(player.getName().toLowerCase()))
+			.min(Comparator.comparingInt((Player p) -> potentialConductors.indexOf(p.getName().toLowerCase())));
 	}
 
     public static CycleState getPlayerCycleState(KitchenRunningConfig config, Player player) {
@@ -139,7 +163,7 @@ public class PlayerPositionUtils {
         if (actorName == null)
             return false;
 
-        return actorName.equalsIgnoreCase(config.conductorUsername());
+        return actorName.equalsIgnoreCase(config.activeConductor());
     }
 
     public static boolean isPvpOrNonLeagues(Client client) {
