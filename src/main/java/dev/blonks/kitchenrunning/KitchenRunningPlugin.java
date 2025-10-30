@@ -91,6 +91,10 @@ public class KitchenRunningPlugin extends Plugin
 	@Getter
 	private boolean forgotGreaves = false;
 
+
+	// feature flags
+	private static final boolean sidebar = false;
+
     @Provides
     KitchenRunningConfig provideConfig(ConfigManager configManager)
     {
@@ -104,9 +108,10 @@ public class KitchenRunningPlugin extends Plugin
         overlayManager.add(tileOverlay);
 		overlayManager.add(greavesWarningOverlay);
         hooks.registerRenderableDrawListener(renderableDrawListener);
-		mainPanel = new MainPanel(this);
-		navButton = createNavButton(config.sidebarPriority());
-		clientToolbar.addNavigation(navButton);
+
+//		mainPanel = new MainPanel(this);
+//		navButton = createNavButton(config.sidebarPriority());
+//		clientToolbar.addNavigation(navButton);
     }
 
     @Override
