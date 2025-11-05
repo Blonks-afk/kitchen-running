@@ -16,6 +16,7 @@ import net.runelite.api.*;
 import net.runelite.api.events.*;
 import net.runelite.api.gameval.InventoryID;
 import net.runelite.client.Notifier;
+import net.runelite.client.callback.ClientThread;
 import net.runelite.client.callback.Hooks;
 import net.runelite.client.config.ConfigManager;
 import net.runelite.client.eventbus.Subscribe;
@@ -39,6 +40,9 @@ public class KitchenRunningPlugin extends Plugin
 {
     @Inject
 	private Client client;
+
+	@Inject
+	private ClientThread clientThread;
 
 	@Inject
 	private ClientToolbar clientToolbar;
@@ -106,7 +110,7 @@ public class KitchenRunningPlugin extends Plugin
     @Override
     protected void startUp() throws Exception
     {
-		updateState();
+		clientThread.invoke(this::updateState);
         overlayManager.add(tileOverlay);
 		overlayManager.add(greavesWarningOverlay);
         hooks.registerRenderableDrawListener(renderableDrawListener);
@@ -120,7 +124,7 @@ public class KitchenRunningPlugin extends Plugin
 
     @Override
     protected void shutDown() throws Exception {
-		updateState();
+		clientThread.invoke(this::updateState);
         overlayManager.remove(tileOverlay);
 		overlayManager.remove(greavesWarningOverlay);
         hooks.unregisterRenderableDrawListener(renderableDrawListener);
