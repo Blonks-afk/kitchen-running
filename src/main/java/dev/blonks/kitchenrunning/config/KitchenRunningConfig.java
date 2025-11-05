@@ -1,5 +1,6 @@
-package dev.blonks.kitchenrunning;
+package dev.blonks.kitchenrunning.config;
 
+import dev.blonks.kitchenrunning.utils.HideMode;
 import net.runelite.client.config.*;
 
 import java.awt.*;
@@ -37,15 +38,44 @@ public interface KitchenRunningConfig extends Config
     String generalConfig = "generalConfig";
 
     @ConfigItem(
-            keyName = "conductorUsername",
-            name = "Conductor username",
-            description = "The username of the player that is leading the kitchen loop",
+            keyName = "conductorUsernames",
+            name = "Conductor usernames",
+            description = "The username(s) of the player that is leading the kitchen loop (commas or new lines)",
             section = generalConfig
     )
-    default String conductorUsername()
+    default String conductorUsernames()
     {
         return "";
     }
+
+
+	@ConfigItem(
+		keyName = "activeConductor",
+		name = "",
+		description = "",
+		hidden = true
+	)
+	default String activeConductor() {
+		return "";
+	}
+	@ConfigItem(
+		keyName = "activeConductor",
+		name = "",
+		description = "",
+		hidden = true
+	)
+	void activeConductor(String conductorUsername);
+
+	@ConfigItem(
+		keyName = "sidebarPriority",
+		name = "Sidebar Priority",
+		description = "Customize the priority of the panel in the sidebar",
+		hidden = true,
+		section = generalConfig
+	)
+	default int sidebarPriority() {
+		return 25;
+	}
 
 
     @ConfigSection(
@@ -184,14 +214,14 @@ public interface KitchenRunningConfig extends Config
     String entityHiderSection = "entityHiderSection";
 
     @ConfigItem(
-            keyName = "hideOtherEntities",
-            name = "Hide other entities",
+            keyName = "hidingMode",
+            name = "Hiding mode",
             description = "Configure when other player entities should be hidden so you can find the conductor",
             section = entityHiderSection,
             position = 0
     )
-    default CycleState hideOtherEntities() {
-        return CycleState.OUT_OF_CYCLE;
+    default HideMode hideOtherEntities() {
+        return HideMode.NOT_FOLLOWING_CONDUCTOR;
     }
 
 
